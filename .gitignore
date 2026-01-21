@@ -26,3 +26,4 @@ Makefile.cmake
 # OS files
 .DS_Store
 Thumbs.db
+_codeql_detected_source_root
