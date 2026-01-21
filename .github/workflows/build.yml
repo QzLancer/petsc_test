@@ -1,0 +1,135 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          gfortran \
+          libopenmpi-dev \
+          openmpi-bin \
+          cmake \
+          libblas-dev \
+          liblapack-dev \
+          python3
+
+    - name: Cache PETSc
+      id: cache-petsc
+      uses: actions/cache@v4
+      with:
+        path: ~/petsc
+        key: petsc-3.21-complex-hypre-${{ runner.os }}
+
+    - name: Download and build PETSc
+      if: steps.cache-petsc.outputs.cache-hit != 'true'
+      run: |
+        cd ~
+        git clone -b release https://gitlab.com/petsc/petsc.git petsc
+        cd petsc
+        ./configure \
+          --with-cc=mpicc \
+          --with-cxx=mpicxx \
+          --with-fc=mpif90 \
+          --with-scalar-type=complex \
+          --download-hypre \
+          --with-debugging=0 \
+          COPTFLAGS='-O2' \
+          CXXOPTFLAGS='-O2' \
+          FOPTFLAGS='-O2'
+        make all
+
+    - name: Set PETSc environment
+      run: |
+        echo "PETSC_DIR=$HOME/petsc" >> $GITHUB_ENV
+        # Get the PETSC_ARCH from the installed version
+        PETSC_ARCH=$(ls -d $HOME/petsc/arch-* 2>/dev/null | head -n1 | xargs basename)
+        echo "PETSC_ARCH=$PETSC_ARCH" >> $GITHUB_ENV
+
+    - name: Build with Makefile
+      run: |
+        make
+
+    - name: Run test
+      run: |
+        make run
+
+  build-linux-cmake:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          gfortran \
+          libopenmpi-dev \
+          openmpi-bin \
+          cmake \
+          libblas-dev \
+          liblapack-dev \
+          python3
+
+    - name: Cache PETSc
+      id: cache-petsc-cmake
+      uses: actions/cache@v4
+      with:
+        path: ~/petsc
+        key: petsc-3.21-complex-hypre-${{ runner.os }}
+
+    - name: Download and build PETSc
+      if: steps.cache-petsc-cmake.outputs.cache-hit != 'true'
+      run: |
+        cd ~
+        git clone -b release https://gitlab.com/petsc/petsc.git petsc
+        cd petsc
+        ./configure \
+          --with-cc=mpicc \
+          --with-cxx=mpicxx \
+          --with-fc=mpif90 \
+          --with-scalar-type=complex \
+          --download-hypre \
+          --with-debugging=0 \
+          COPTFLAGS='-O2' \
+          CXXOPTFLAGS='-O2' \
+          FOPTFLAGS='-O2'
+        make all
+
+    - name: Set PETSc environment
+      run: |
+        echo "PETSC_DIR=$HOME/petsc" >> $GITHUB_ENV
+        PETSC_ARCH=$(ls -d $HOME/petsc/arch-* 2>/dev/null | head -n1 | xargs basename)
+        echo "PETSC_ARCH=$PETSC_ARCH" >> $GITHUB_ENV
+
+    - name: Build with CMake
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make
+
+    - name: Run test (CMake build)
+      run: |
+        cd build
+        mpirun --oversubscribe -n 1 ./petsc_hypre_ams_gmres
