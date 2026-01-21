@@ -323,7 +323,7 @@ static PetscErrorCode SolveWithAMSGMRES(ExternalData* data)
     /* 5. 结果输出 */
     ierr = KSPGetIterationNumber(ksp, &its); CHKERRQ(ierr);
     ierr = KSPGetResidualNorm(ksp, &norm); CHKERRQ(ierr);
-    ierr = PetscPrintf(PETSC_COMM_WORLD, "求解结束: Iterations = %D, Residual = %g\n", its, (double)norm); CHKERRQ(ierr);
+    ierr = PetscPrintf(PETSC_COMM_WORLD, "求解结束: Iterations = %" PetscInt_FMT ", Residual = %g\n", its, (double)norm); CHKERRQ(ierr);
 
     /* 6. 清理 */
     ierr = PetscFree(coords_array); CHKERRQ(ierr);

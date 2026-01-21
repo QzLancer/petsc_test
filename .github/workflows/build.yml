@@ -69,7 +69,7 @@ jobs:
 
     - name: Run test
       run: |
-        make run
+        mpirun --oversubscribe -n 1 ./petsc_hypre_ams_gmres
 
   build-linux-cmake:
     runs-on: ubuntu-latest
