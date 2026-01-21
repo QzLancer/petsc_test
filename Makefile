@@ -15,9 +15,14 @@ ifndef PETSC_DIR
     $(error PETSC_DIR is not set. Please set it to your PETSc installation directory)
 endif
 
-# Include PETSc configuration
-include ${PETSC_DIR}/lib/petsc/conf/variables
-include ${PETSC_DIR}/lib/petsc/conf/rules
+# Include PETSc configuration - check for PETSC_ARCH-specific path first
+ifneq ($(wildcard ${PETSC_DIR}/${PETSC_ARCH}/lib/petsc/conf/petscvariables),)
+    include ${PETSC_DIR}/${PETSC_ARCH}/lib/petsc/conf/petscvariables
+    include ${PETSC_DIR}/${PETSC_ARCH}/lib/petsc/conf/petscrules
+else
+    include ${PETSC_DIR}/lib/petsc/conf/variables
+    include ${PETSC_DIR}/lib/petsc/conf/rules
+endif
 
 # Target executable
 TARGET = petsc_hypre_ams_gmres
@@ -33,20 +38,20 @@ all: $(TARGET)
 
 # Link the executable
 $(TARGET): $(OBJECTS)
-	-${CLINKER} -o $@ $^ ${PETSC_LIB}
+	${CLINKER} -o $@ $^ ${PETSC_LIB}
 	${RM} $(OBJECTS)
 
 # Compile source files
 %.o: %.c
-	-${PETSC_COMPILE} -c $< -o $@
+	${PCC} ${PCC_FLAGS} ${CFLAGS} ${CCPPFLAGS} -c $< -o $@
 
 # Run the executable
 run: $(TARGET)
-	${MPIEXEC} -n 1 ./$(TARGET)
+	${MPIEXEC} --oversubscribe -n 1 ./$(TARGET)
 
 # Run with multiple processes
 run-mpi: $(TARGET)
-	${MPIEXEC} -n 4 ./$(TARGET)
+	${MPIEXEC} --oversubscribe -n 4 ./$(TARGET)
 
 # Clean build artifacts
 clean::
