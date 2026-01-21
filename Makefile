@@ -43,7 +43,7 @@ $(TARGET): $(OBJECTS)
 
 # Compile source files
 %.o: %.c
-	${PCC} ${PCC_FLAGS} ${CFLAGS} ${CCPPFLAGS} -c $< -o $@
+	${PCC} ${PCC_FLAGS} ${CFLAGS} ${CCPPFLAGS} ${PETSC_CC_INCLUDES} -c $< -o $@
 
 # Run the executable
 run: $(TARGET)
